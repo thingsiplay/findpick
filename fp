@@ -336,41 +336,30 @@ fi
 
 # Generate a newline separated and sorted list of files.  Strip out needless
 # front "./" and last slash for directories.  Do not quote the free standing
-# variables such as 'opt_type'.  The intended use case for this function is to
-# capture it's output with a subshell.
-find_files () {
-    local files
-    
-    files="$(find "${symlinks}" \
-                    -O3 \
-                    "${@}" \
-                    -readable \
-                    -nowarn \
-                    -maxdepth "${opt_maxdepth}" \
-                    ${xdev} \
-                    ${opt_type} \
-                    ${x_type} \
-                    -name "${all_pattern}" \
-                    "${filter_mode}" "${filter_pattern}" \
-                    -regextype posix-extended \
-                    "${extended_mode}" "${extended_pattern}" \
-                    -print \
-                    2>/dev/null)"
+# variables such as 'opt_type'.
+files="$(find "${symlinks}" \
+                -O3 \
+                "${@}" "${stdin[@]}" \
+                -readable \
+                -nowarn \
+                -maxdepth "${opt_maxdepth}" \
+                ${xdev} \
+                ${opt_type} \
+                ${x_type} \
+                -name "${all_pattern}" \
+                "${filter_mode}" "${filter_pattern}" \
+                -regextype posix-extended \
+                "${extended_mode}" "${extended_pattern}" \
+                -print \
+                2>/dev/null)"
 
-    if ! [[ "${files}" =~ \\w ]] 
-    then
-        printf '%s' "${files}" \
-                   | sed 's+^./++' \
-                   | sed 's+/$++' \
-                   | sort
-    fi
-}
-
-# Run 'find' command with all options and files.  Stop script if nothing was
-# found.
-files="$(find_files "${@}" "${stdin[@]}")"
-if [ "${files}" = '' ]
+if ! [[ "${files}" =~ \\w ]] 
 then
+    files=$(printf '%s' "${files}" \
+               | sed 's+^./++' \
+               | sed 's+/$++' \
+               | sort)
+else
     exit 1
 fi
 
