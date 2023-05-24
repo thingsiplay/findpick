@@ -289,7 +289,10 @@ fi
 # commandline.
 if [[ "${opt_maxdepth}" = '' ]]
 then
-    if [[ "${#}" -eq 0 ]]
+    # We could test the stdin part with '${#stdin[@]} -eq 0' instead, like
+    # positional arguments.  But then empty input stream such as output from
+    # `echo /x=mc2` would default to maxdepth=1, which is not what we want.
+    if [[ ${#} -eq 0 ]] && [[ "${opt_stdin}" = 'false' ]]
     then
         opt_maxdepth=1
     else
