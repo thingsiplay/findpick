@@ -19,6 +19,7 @@ opt_type=''
 opt_filter=''
 opt_extended=''
 opt_ignorecase=false
+opt_stdin=false
 opt_all=false
 opt_symlinks=false
 opt_xdev=false
@@ -46,7 +47,7 @@ cat << EOF
 usage:
   ${pname} [OPTIONS] [FILES...]
 
-  ${pname} [-h | -v] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
+  ${pname} [-h | -v] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
   ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
   ${pspac} [--] [FILES...]
 
@@ -58,6 +59,7 @@ positional arguments:
 options:
   -h            help: print this help and exit
   -v            version: print name and version and exit
+  -s            stdin: read each line as FILES in addition to positionals
   -a            all: do not hide dotfiles starting with "." in basename
   -l            symlinks: resolve symlinks, expand and test for existing target
   -x            xdev: stay on one filesystem and skip other mounted devices
@@ -130,7 +132,7 @@ OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
 # Anyrhing remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
-while getopts ':hvalxknpirbo:m:d:t:f:e:c:' OPTION 
+while getopts ':hvsalxknpirbo:m:d:t:f:e:c:' OPTION 
 do
     case "${OPTION}" in
         h)  show_help
@@ -139,6 +141,7 @@ do
         v)  show_version
             exit 0
             ;;
+        s)  opt_stdin=true ;;
         a)  opt_all=true ;;
         l)  opt_symlinks=true ;;
         x)  opt_xdev=true ;;
@@ -174,6 +177,13 @@ do
 done
 # Discard the options and sentinel --
 shift "$((OPTIND-1))"
+
+# Read each line into an array used as files.
+declare -a stdin=()
+if [[ "${opt_stdin}" = 'true' ]] 
+then
+    mapfile -t stdin
+fi
 
 # Expand leading tilde to current users home. And don't allow empty start
 # directory.
@@ -358,7 +368,7 @@ find_files () {
 
 # Run 'find' command with all options and files.  Stop script if nothing was
 # found.
-files="$(find_files "${@}")"
+files="$(find_files "${@}" "${stdin[@]}")"
 if [ "${files}" = '' ]
 then
     exit 1
