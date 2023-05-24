@@ -201,11 +201,12 @@ $ fp -d3 -m 'sort -R' | head -n1
 
 ### Run
 
-List only executable files and run selection in the background. The output of
-the executed program will be saved into specified file:
+List only executable files and run selection in the background. Option `-b` is
+setting `-r` automatically too and therefore only one of them is needed. The
+output of the executed program will be saved into specified file:
 
 ```
-$ fp -c ~/bin -tfx -rbo '~/output.txt'
+$ fp -c ~/bin -tfx -bo '~/output.txt'
 ```
 
 Running selected programs with option `-r` can be wonky sometimes, when they
