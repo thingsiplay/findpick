@@ -199,6 +199,18 @@ into a different program `head` to read the first entry.
 $ fp -d3 -m 'sort -R' | head -n1
 ```
 
+### Stdin
+
+Standard input stream can be read with `-s`. Each newline separated file is
+equivalent to FILES from commandline arguments. In this example `grep` is
+configured to output filenames and paths only. The resulting list is piped to
+`fp`, which then any symlink is is expanded, due to `-l` option.
+
+```
+grep --no-messages --files-with-matches -im1 -F 'LICENSE' -- ~/bin/* | fp -spl
+
+```
+
 ### Run
 
 List only executable files and run selection in the background. Option `-b` is
