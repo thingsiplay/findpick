@@ -6,7 +6,7 @@ set -u
 # Default settings.  These are active until the corresponding commandline
 # options overwrites them.  Lookup in the below show_help section to see their
 # purpose and which option belongs to what variable.
-
+#
 # 'opt_menucmd' Must be a program reading stdin as list and output to stdout.
 opt_menucmd='fzf --reverse --multi --cycle --scheme=path'
 # Empty 'opt_changedir' defaults to current working dir.
@@ -66,12 +66,10 @@ f=regular file, l=symbolic link, s=socket, x=executable (directories are also
 executable).  Comma for separation is optiona, such as "-t fx" is equivalent to
 "-t f,x".
 
-[6]  -e is a regular expression and used to filter out files like -f option.
-But this regex will match whole known body of path including folder parts, not
-just name of file.  Known path depends on what is given at commandline.  If
-path consists of "./file", then regex cannot match starting at root "/" in
-example.  The regex type set for "find" command with "-regextype" is
-"posix-extended".
+[6]  -e a "posix-extended" regular expression to filter out files similar to
+-f.  But regex matches whole known path body, including it's folder parts with
+slashes too.  Known path depends on what was given as input.  If path consists
+of "./file", then regex cannot match root "/", but it would at "/bin/grep".
 
 EOF
 }
@@ -98,8 +96,8 @@ positional arguments:
 options:
   -h            help: print this help and exit
   -H            notes: print this help, additional notes and exit
-  -V            version: print name and version and exit
-  -s            stdin: read each line as FILES in addition to positionals
+  -V            version: print name, version and exit
+  -s            stdin: read each line from stdin stream as a FILES path
   -a            all: do not hide dotfiles starting with "." in basename
   -l            symlinks: resolve symlinks, expand and test for existing target
   -x            xdev: stay on one filesystem and skip other mounted devices
@@ -137,7 +135,7 @@ EOF
 # is just out of good habit.
 OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
-# Anyrhing remaining in "$@" is not an option and can be used otherwise (such
+# Anything remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
 while getopts ':HhVsalxknpirbo:m:d:t:f:e:c:' OPTION 
 do
@@ -189,15 +187,14 @@ done
 # Discard the options and sentinel --
 shift "$((OPTIND-1))"
 
-# Read each line into an array used as files.
+# Read each line from stdin stream into an array, to be combined with
+# positional arguments at later point.
 declare -a stdin=()
 if [[ "${opt_stdin}" = 'true' ]] 
 then
     mapfile -t stdin
 fi
 
-# Expand leading tilde to current users home. And don't allow empty start
-# directory.
 if test -z "${opt_changedir}"
 then
     opt_changedir="."
@@ -206,7 +203,7 @@ else
 fi
 
 # Normally this "opt_output" path variable is empty.  Either it is set directly
-# or is set automatically when options "-b" or "-r" are set.
+# or is set automatically when run options '-r' or '-b' are set.
 if ! test -z "${opt_output}" && ! [ "${opt_output}" = '/dev/null' ]
 then
         opt_output="$(readlink --canonicalize-missing --no-newline --quiet \
@@ -217,18 +214,14 @@ then
         then
             exit 1
         fi
-        # Delete file for fresh start.  However later when multiple programs
-        # run, each of their output will be saved to same file by redirecting
-        # ">>" to append.  'touch' to check for permission.
+        # touch to check permissions.  Delete file for fresh start.
         touch -- "${opt_output}" || exit 1 && rm -- "${opt_output}"
 fi
 
-# Current working directory is changed, so files are searched starting from
-# this position.
 cd "${opt_changedir}" || exit 1
 
-# Used with 'find' command.  '-L' follows symbolic links and check destination
-# for existence.  '-P' never follow links (default behaviour).
+# 'find' option '-L' follows and checks destination of symbolic links, while
+# '-P' never follows.
 if [ "${opt_symlinks}" = 'true' ] 
 then
     symlinks='-L'
@@ -236,8 +229,8 @@ else
     symlinks='-P'
 fi
 
-# Do not descend into directories of other filesystems for 'find' command.
-# '-mount' and '-xdev' options from 'find' have the same effect.
+# 'find' option '-xdev' to not descend into directories of other filesystems.
+# '-mount' is a synonym for '-xdev'.
 if [ "${opt_xdev}" = 'true' ] 
 then
     xdev='-xdev'
@@ -245,8 +238,7 @@ else
     xdev=''
 fi
 
-# Show or hide hidden dot files.  This pattern is used with '-name' option at
-# 'find' command.
+# 'find' option '-name' to simulate hidden dot files like 'ls' at default.
 if [[ "${opt_all}" = 'true' ]] 
 then
     all_pattern='*'
@@ -254,8 +246,7 @@ else
     all_pattern='[^.]*'
 fi
 
-# Set case-sensitivity mode for regex or shell pattern at options '-e' and
-# '-f'.
+# case-sensitivity mode for 'filter_pattern' and 'extended_pattern'.
 if [[ "${opt_ignorecase}" = 'true' ]] 
 then
     filter_mode='-iname'
@@ -265,8 +256,8 @@ else
     extended_mode='-regex'
 fi
 
-# Filters all files out which does not match on 'find' command.  Used together
-# with 'filter_mode'.
+# 'find' option '-name' or '-iname' to filter out files with shell pattern,
+# depending on scripts 'filter_mode' variable.
 if [[ "${opt_filter}" = '' ]] 
 then
     filter_pattern='*'
@@ -274,8 +265,8 @@ else
     filter_pattern="${opt_filter}"
 fi
 
-# Filters all files out which does not match on 'find' command.  Used together
-# with 'extended_mode'.
+# 'find' option '-regex' or '-iregex' to filter out files with regular
+# expression, depending on scripts 'extended_mode' variable.
 if [[ "${opt_extended}" = '' ]] 
 then
     extended_pattern='.*'
@@ -283,10 +274,10 @@ else
     extended_pattern="${opt_extended}"
 fi
 
-# Default value for depth when no files are given is '1', so the starting point
-# will be listed.  If any files or folders are given at positional arguments,
-# then don't list folders content, just list the explicitly given names from
-# commandline.
+# 'find' option '-maxdepth' to limit levels of folder structure to access.
+# Default is '1' if no positional arguments or stdin is in use.  '0' means
+# to list only what is given as input, otherwise '1' is intended to list all
+# files of current active start directory.
 if [[ "${opt_maxdepth}" = '' ]]
 then
     # We could test the stdin part with '${#stdin[@]} -eq 0' instead, like
@@ -300,9 +291,8 @@ then
     fi
 fi
 
-# Following block will update the script option and set a new variable.  These
-# are used with find to limit listing to certain filetypes.
-x_type=""
+# 'find' option '-type' and '-xtype' to list specified filetypes only.
+executable_type=""
 if ! [[ "${opt_type}" = '' ]] 
 then
     opt_type="${opt_type//,/}"
@@ -313,21 +303,21 @@ then
         exit 1
     elif [[ ${opt_type} =~ x ]] 
     then
-        # The flag 'x' in the find option '-type' is not supported and requires
-        # a completley different option instead.  So it will be removed from
-        # list of flags and the other appropriate option is set instead.
+        # The flag 'x' in 'find 'option '-type' is not supported and requires a
+        # completley different option instead.  Remove it from list and set the
+        # other appropriate option instead.
         opt_type="${opt_type/x/}"
-        x_type='-executable'
+        executable_type='-executable'
     else
-        x_type=''
+        executable_type=''
     fi
 
     # Any remaining character is a valid flag for '-type' or '-xtype' option at
-    # find command.
+    # 'find' command.
     if ! [[ "${opt_type}" = '' ]] 
     then
         # These options for 'find' command requires a comma for each flag.
-        # This converts something like 'fx' into 'f,x' in example.
+        # This puts a comma between each flag.
         opt_type="$(printf '%s' "${opt_type}" | sed 's/./&,/g')"
         opt_type=${opt_type%,}
 
@@ -342,15 +332,16 @@ then
     fi
 fi
 
-# Only positive numbers are allowed.
 if ! [[ ${opt_maxdepth} =~ ^[0-9]+$ ]]
 then
     exit 1
 fi
 
-# Generate a newline separated and sorted list of files.  Strip out needless
-# front "./" and last slash for directories.  Do not quote the free standing
-# variables such as 'opt_type'.
+# Apply search and generate a newline separated and sorted list of files.
+# Strip out needless front "./" and last slash for directories.  Do not quote
+# the free standing variables such as 'opt_type' in the command chain below,
+# but make sure they are valid options and don't interfere with the commandline
+# arguments to 'find'.
 files="$(find "${symlinks}" \
                 -O3 \
                 "${@}" "${stdin[@]}" \
@@ -359,7 +350,7 @@ files="$(find "${symlinks}" \
                 -maxdepth "${opt_maxdepth}" \
                 ${xdev} \
                 ${opt_type} \
-                ${x_type} \
+                ${executable_type} \
                 -name "${all_pattern}" \
                 "${filter_mode}" "${filter_pattern}" \
                 -regextype posix-extended \
@@ -367,20 +358,22 @@ files="$(find "${symlinks}" \
                 -print \
                 2>/dev/null)"
 
-if ! [[ "${files}" =~ \\w ]] 
+# Quit early if nothing is found.
+if [[ "${files}" =~ \\w ]] 
 then
+    exit 1
+else
     files=$(printf '%s' "${files}" \
                | sed 's+^./++' \
                | sed 's+/$++' \
                | sort)
-else
-    exit 1
 fi
 
-# Show a menu or pick a file otherwise from the list of files generated
-# previously.  The preview functionality for 'fzf' is added only, if option
-# '-p' from commandline is in effect.  The preview will show path, filetype and
-# content of any text file too.
+# Now open menu (or any other streaming command set with 'opt_menucmd') with
+# all list of files from previous 'find' search as input.  The result should be
+# one or more selected files separated by newline.  The preview branch is build
+# specifically for 'fzf' command and should not be enabled with any other
+# command.
 selected=""
 if [[ "${opt_preview}" = 'true' ]] 
 then
@@ -424,8 +417,6 @@ else
     selected="$(printf '%s' "${files}" | ${opt_menucmd})"
 fi
 
-# If nothing was fround with prior command 'find' or nothing is selected in the
-# menu, then an empty selection should be treated as error.
 if [ "${selected}" = '' ] 
 then
     exit 1
@@ -439,6 +430,7 @@ while IFS= read -r path
 do
     if [[ "${opt_symlinks}" = 'true' ]] 
     then
+        # /absolute/path/Filename.txt
         path=$(readlink --canonicalize-existing --no-newline --quiet \
                -- "${path}")
         if [ "${path}" = '' ] 
@@ -449,24 +441,24 @@ do
 
     if [[ "${opt_name}" = 'true' ]] 
     then
-        # Output filename without directory part.
+        # Filename.txt
         printf '%s\n' "${path##*/}" \
             || exit 1
     elif [[ "${opt_kinpath}" = 'true' ]] 
     then
-        # Calculate relative path from defined start directory until selection.
+        # ../path/Filename.txt
         change=$(readlink --canonicalize-existing --no-newline --quiet \
                    -- "${opt_changedir}")
         realpath --relative-to="${change}" --no-symlinks --quiet -- "${path}" \
             || exit 1
     elif [[ "${opt_symlinks}" = 'false' ]] 
     then
-        # Output fullpath as fallback if no symlinks are checked.
+        # /absolute/path/Filename.txt
         realpath --canonicalize-missing --no-symlinks --quiet -- "${path}" \
             || exit 1
     else
-        # Just output path, as it is extended to an absolute path by 'readlink'
-        # command, because 'opt_symlinks' is active at this point.
+        # /absolute/path/Filename.txt
+        # At this point 'path' is already extended with 'readlink'.
         printf '%s\n' "${path}" \
             || exit 1
     fi
