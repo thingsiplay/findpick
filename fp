@@ -37,48 +37,8 @@ findpick v0.1
 EOF
 }
 
-show_help () {
-    local pname
-    local pspac
-    pname="${0##*/}"
-    pspac="$(printf '%s' "${pname}" | sed 's/./ /g')"
-
+show_help_notes () {
 cat << EOF
-usage:
-  ${pname} [OPTIONS] [FILES...]
-
-  ${pname} [-h | -v] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
-  ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
-  ${pspac} [--] [FILES...]
-
-General purpose file picker combining "find" command with a fuzzy finder.
-
-positional arguments:
-  FILES         path to list files and folders
- 
-options:
-  -h            help: print this help and exit
-  -v            version: print name and version and exit
-  -s            stdin: read each line as FILES in addition to positionals
-  -a            all: do not hide dotfiles starting with "." in basename
-  -l            symlinks: resolve symlinks, expand and test for existing target
-  -x            xdev: stay on one filesystem and skip other mounted devices
-  -k            kinpath: output relative path from starting point to selection
-  -n            name: output basename of file without folder parts
-  -p            preview: show box with extra infos in "fzf" menu  [1]
-  -i            ignorecase: modifies -f and -e options to be case-insensitive
-  -r            run: selection as executable or open with default program  [2]
-  -b            background: runs like -r but as a nohup background process  [2]
-  -o FILE       output: pipe standard stream from -r or -b process to file  [2]
-  -m CMD        menu: command for selection, "fzf", "rofi -dmenu", "head"  [3]
-  -d NUM        maxdepth: number of subfolder levels to dig into  [4]
-  -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [5]
-  -f PATT       filter: show only files which shell pattern matches basename
-  -e PATT       extended: posix-extended regex match at entire known path  [6]
-  -c DIR        change: directory of starting point to search files from
-  --            stop: parsing options and interpret everything after as FILES
-
-Important: Any option should be listed before positional arguments at FILES.
 
 [1]  -p will add several "-preview" related options to the -m command.  This is
 a feature of "fzf".  Don't use this option when -m is set to any other program.
@@ -113,6 +73,53 @@ path consists of "./file", then regex cannot match starting at root "/" in
 example.  The regex type set for "find" command with "-regextype" is
 "posix-extended".
 
+EOF
+}
+
+show_help () {
+    local pname
+    local pspac
+    pname="${0##*/}"
+    pspac="$(printf '%s' "${pname}" | sed 's/./ /g')"
+
+cat << EOF
+usage:
+  ${pname} [OPTIONS] [FILES...]
+
+  ${pname} [-h | -H | -V] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
+  ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
+  ${pspac} [--] [FILES...]
+
+General purpose file picker combining "find" command with a fuzzy finder.
+
+positional arguments:
+  FILES         path to list files and folders
+ 
+options:
+  -h            help: print this help and exit
+  -H            notes: print this help, additional notes and exit
+  -V            version: print name and version and exit
+  -s            stdin: read each line as FILES in addition to positionals
+  -a            all: do not hide dotfiles starting with "." in basename
+  -l            symlinks: resolve symlinks, expand and test for existing target
+  -x            xdev: stay on one filesystem and skip other mounted devices
+  -k            kinpath: output relative path from starting point to selection
+  -n            name: output basename of file without folder parts
+  -p            preview: show box with extra infos in "fzf" menu  [1]
+  -i            ignorecase: modifies -f and -e options to be case-insensitive
+  -r            run: selection as executable or open with default program  [2]
+  -b            background: runs like -r but as a nohup background process  [2]
+  -o FILE       output: pipe standard stream from -r or -b process to file  [2]
+  -m CMD        menu: command for selection, "fzf", "rofi -dmenu", "head"  [3]
+  -d NUM        maxdepth: number of subfolder levels to dig into  [4]
+  -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [5]
+  -f PATT       filter: show only files which shell pattern matches basename
+  -e PATT       extended: posix-extended regex match at entire known path  [6]
+  -c DIR        change: directory of starting point to search files from
+  --            stop: parsing options and interpret everything after as FILES
+
+Important: Any option should be listed before positional arguments at FILES.
+
 error code:
   0             success: selected path is printed to stdout
   1             failure: aborted, file not found or any other error
@@ -132,13 +139,17 @@ OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
 # Anyrhing remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
-while getopts ':hvsalxknpirbo:m:d:t:f:e:c:' OPTION 
+while getopts ':HhVsalxknpirbo:m:d:t:f:e:c:' OPTION 
 do
     case "${OPTION}" in
+        H)  show_help
+            show_help_notes
+            exit 0
+            ;;
         h)  show_help
             exit 0
             ;;
-        v)  show_version
+        V)  show_version
             exit 0
             ;;
         s)  opt_stdin=true ;;
