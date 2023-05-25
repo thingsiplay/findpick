@@ -213,16 +213,18 @@ grep --no-messages --files-with-matches -im1 -F 'LICENSE' -- ~/bin/* | fp -spl
 
 ### Run
 
-List only executable files and run selection in the background. Option `-b` is
-setting `-r` automatically too and therefore only one of them is needed. The
-output of the executed program will be saved into specified file:
+Option `-tfx` lists executable files only. Run the selected entry as a command
+if it's an executable, or open the file with it's associated default
+application. `-b` is here similar to `-r`, but executes the process in the
+background without waiting. The output of the command is written to specified
+file, otherwise will be output to stdout.
 
 ```
 $ fp -c ~/bin -tfx -bo '~/output.txt'
 ```
 
-Running selected programs with option `-r` can be wonky sometimes, when they
-are run in background with option `-b` like in this example. This is especially
-true when capturing it's output. One should be very careful not to forget or
-mix up options with saving to file, otherwise important files could be
-overwritten.
+Running commands and programs with `-r` or `-b` can be problematic in some
+situations, such as if the selected script or program waits for an input. Or
+if it does some unusual things. So be careful. BTW multiple selections can
+be executed as well and even output to same file. In such a case temporary
+files are written and deleted before combining into output file.

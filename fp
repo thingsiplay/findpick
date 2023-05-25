@@ -44,10 +44,11 @@ cat << EOF
 a feature of "fzf".  Don't use this option when -m is set to any other program.
 
 [2]  -r -b -o are related.  -r runs selection as a command if it's an
-executable, otherwise opens file with xdg-open; and waits for finish.  -b will
-modify -r to become a background process and detach from terminal.  -o will
-write output from executed -r to specified file.  If multiple files run, then
-all of them write to same file by appending.  -b will activate -r option too.
+executable, otherwise opens file with xdg-open; and waits to finish.  -b runs
+too, but instead as a background process detached from terminal and does not
+wait.  -o will write output of process into specifid file in realtime.  If
+multiple processes run, then each output is written at once with a delay after
+process finishes.
 
 [3]  -m can be any shell command or program with arguments.  It should read
 newline separated list from stdin and output selected file to stdout.  Current
@@ -426,6 +427,13 @@ fi
 # have multiple selections.  Therefore each of the newline separated entries
 # must be handled individually.  Any error of the commands should exit script
 # immadiately.
+#
+# In case multiple selections are made and options '-r' or '-b' will run
+# multiple programs, then the resulting file will be written with delay only
+# when the programs finish.  We need 'echo' here, each entry has its own
+# newline and 'printf' would result in '0' for one entry.
+num_selections=$(echo "${selected}" | wc -l)
+
 while IFS= read -r path
 do
     if [[ "${opt_symlinks}" = 'true' ]] 
@@ -475,10 +483,27 @@ do
         then
             if [[ "${opt_background}" = 'true' ]]
             then
-                nohup "${path}" &> "${opt_output}" &
+                if [[ ${num_selections} -eq 1 ]]
+                then
+                    nohup "${path}" &>> "${opt_output}" &
+                else
+                    tempfile=$(mktemp -p '/dev/shm/')
+                    nohup "${path}" &> "${tempfile}" \
+                        && cat "${tempfile}" >> "${opt_output}" \
+                        && rm -f -- "${tempfile}" &
+                fi
             elif ! [ "${opt_output}" = '/dev/null' ]
             then
-                "${path}" &>> "${opt_output}"
+                if [[ ${num_selections} -eq 1 ]]
+                then
+                    "${path}" &>> "${opt_output}"
+                else
+                    tempfile=$(mktemp -p '/dev/shm/')
+                    trap "rm -f -- \"${tempfile}\"" EXIT
+                    "${path}" &> "${tempfile}" \
+                        && cat "${tempfile}" >> "${opt_output}" \
+                        && rm -f -- "${tempfile}"
+                fi
             else
                 "${path}"
             fi
@@ -486,10 +511,27 @@ do
         else
             if [[ "${opt_background}" = 'true' ]]
             then
-                nohup xdg-open "${path}" &> "${opt_output}" &
+                if [[ ${num_selections} -eq 1 ]]
+                then
+                    nohup xdg-open "${path}" &>> "${opt_output}" &
+                else
+                    tempfile=$(mktemp -p '/dev/shm/')
+                    nohup xdg-open "${path}" &> "${tempfile}" \
+                        && cat "${tempfile}" >> "${opt_output}" \
+                        && rm -f -- "${tempfile}" &
+                fi
             elif ! [ "${opt_output}" = '/dev/null' ]
             then
-                xdg-open "${path}" &>> "${opt_output}"
+                if [[ ${num_selections} -eq 1 ]]
+                then
+                    xdg-open "${path}" &>> "${opt_output}"
+                else
+                    tempfile=$(mktemp -p '/dev/shm/')
+                    trap "rm -f -- \"${tempfile}\"" EXIT
+                    xdg-open "${path}" &> "${tempfile}" \
+                        && cat "${tempfile}" >> "${opt_output}" \
+                        && rm -f -- "${tempfile}"
+                fi
             else
                 xdg-open "${path}"
             fi
