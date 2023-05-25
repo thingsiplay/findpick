@@ -18,6 +18,7 @@ opt_maxdepth=''
 opt_type=''
 opt_filter=''
 opt_extended=''
+opt_grep=''
 opt_ignorecase=false
 opt_nomenu=false
 opt_stdin=false
@@ -88,7 +89,7 @@ usage:
   ${pname} [OPTIONS] [FILES...]
 
   ${pname} [-h | -H | -V] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
-  ${pspac} [-M]
+  ${pspac} [-M] [-g PATT]
   ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
   ${pspac} [--] [FILES...]
 
@@ -108,12 +109,13 @@ options:
   -k            kinpath: output relative path from starting point to selection
   -n            name: output basename of file without folder parts
   -p            preview: show box with extra infos in "fzf" menu  [1]
-  -i            ignorecase: modifies -f and -e options to be case-insensitive
+  -i            ignorecase: modifies -f, -e and -g to be case-insensitive
   -r            run: selection as executable or open with default program  [2]
   -b            background: runs like -r but as a nohup background process  [2]
   -o FILE       output: pipe standard stream from -r or -b process to file  [2]
   -m CMD        menu: command for selection, "fzf", "rofi -dmenu", "head"  [3]
   -M            nomenu: disable menu command -m and output everything [3]
+  -g PATT       grep: filter out files by grep extended-regexp matching content
   -d NUM        maxdepth: number of subfolder levels to dig into  [4]
   -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [5]
   -f PATT       filter: show only files which shell pattern matches basename
@@ -142,7 +144,7 @@ OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
 # Anything remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
-while getopts ':HhVsalxknpiMrbo:m:d:t:f:e:c:' OPTION 
+while getopts ':HhVsalxknpiMrbo:m:d:t:f:e:g:c:' OPTION
 do
     case "${OPTION}" in
         H)  show_help
@@ -183,6 +185,7 @@ do
         t)  opt_type="${OPTARG}" ;;
         f)  opt_filter="${OPTARG}" ;;
         e)  opt_extended="${OPTARG}" ;;
+        g)  opt_grep="${OPTARG}" ;;
         c)  opt_changedir="${OPTARG}" ;;
         ?)  continue ;;
         *)  show_help >&2
@@ -273,11 +276,19 @@ fi
 
 # 'find' option '-regex' or '-iregex' to filter out files with regular
 # expression, depending on scripts 'extended_mode' variable.
-if [[ "${opt_extended}" = '' ]] 
+if [[ "${opt_extended}" = '' ]]
 then
     extended_pattern='.*'
 else
     extended_pattern="${opt_extended}"
+fi
+
+# 'grep' option to ignore case for '--extended-regexp' pattern matching.
+if [[ "${opt_ignorecase}" = 'true' ]]
+then
+    grep_ignorecase='--ignore-case'
+else
+    grep_ignorecase='--no-ignore-case'
 fi
 
 # 'find' option '-maxdepth' to limit levels of folder structure to access.
@@ -368,11 +379,21 @@ files="$(find "${symlinks}" \
 if [[ "${files}" =~ \\w ]] 
 then
     exit 1
-else
-    files=$(printf '%s' "${files}" \
-               | sed 's+^./++' \
-               | sed 's+/$++' \
-               | sort)
+fi
+
+files=$(printf '%s' "${files}" \
+           | sed 's+^./++' \
+           | sed 's+/$++' \
+           | sort)
+
+if ! [[ "${opt_grep}" = '' ]]
+then
+    readarray -t array_files <<<"${files}"
+    files=$(grep --color=never --no-messages --files-with-matches \
+            --directories=skip --binary-files=binary --max-count=1 \
+            ${grep_ignorecase} \
+            --extended-regexp "${opt_grep}" \
+            -- "${array_files[@]}")
 fi
 
 # Now open menu (or any other streaming command set with 'opt_menucmd') with
