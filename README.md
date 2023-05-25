@@ -228,3 +228,15 @@ situations, such as if the selected script or program waits for an input. Or
 if it does some unusual things. So be careful. BTW multiple selections can
 be executed as well and even output to same file. In such a case temporary
 files are written and deleted before combining into output file.
+
+### No Menu
+
+You can also defeat the purpose of this program and just not use a menu at all.
+Output every path without selection by disabling the menu with `-M` or giving
+an empty value with `-m ''` (note the space between `m` and the quotes `''`).
+Be careful combining this with execution options such as `-r` and `-b`, as
+potentially thousands of programs could run at the same time.
+
+```
+$ fp -M *
+```

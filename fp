@@ -19,6 +19,7 @@ opt_type=''
 opt_filter=''
 opt_extended=''
 opt_ignorecase=false
+opt_nomenu=false
 opt_stdin=false
 opt_all=false
 opt_symlinks=false
@@ -51,8 +52,9 @@ multiple processes run, then each output is written at once with a delay after
 process finishes.
 
 [3]  -m can be any shell command or program with arguments.  It should read
-newline separated list from stdin and output selected file to stdout.  Current
-default command:
+newline separated list from stdin and output selected file to stdout. An empty
+menu command as '-m ""' or option -M as a shortcut will just output everything
+without user interaction.  Current default command:
 
     "${opt_menucmd}"
 
@@ -86,6 +88,7 @@ usage:
   ${pname} [OPTIONS] [FILES...]
 
   ${pname} [-h | -H | -V] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
+  ${pspac} [-M]
   ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
   ${pspac} [--] [FILES...]
 
@@ -110,6 +113,7 @@ options:
   -b            background: runs like -r but as a nohup background process  [2]
   -o FILE       output: pipe standard stream from -r or -b process to file  [2]
   -m CMD        menu: command for selection, "fzf", "rofi -dmenu", "head"  [3]
+  -M            nomenu: disable menu command -m and output everything [3]
   -d NUM        maxdepth: number of subfolder levels to dig into  [4]
   -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [5]
   -f PATT       filter: show only files which shell pattern matches basename
@@ -138,7 +142,7 @@ OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
 # Anything remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
-while getopts ':HhVsalxknpirbo:m:d:t:f:e:c:' OPTION 
+while getopts ':HhVsalxknpiMrbo:m:d:t:f:e:c:' OPTION 
 do
     case "${OPTION}" in
         H)  show_help
@@ -159,6 +163,7 @@ do
         n)  opt_name=true ;;
         p)  opt_preview=true ;;
         i)  opt_ignorecase=true ;;
+        M)  opt_nomenu=true ;;
         r)  opt_run=true
             if [ "${opt_output}" == "" ]
             then
@@ -376,7 +381,10 @@ fi
 # specifically for 'fzf' command and should not be enabled with any other
 # command.
 selected=""
-if [[ "${opt_preview}" = 'true' ]] 
+if [[ "${opt_menucmd}" = '' ]] || [[ "${opt_nomenu}" = 'true' ]]
+then
+    selected="${files}"
+elif [[ "${opt_preview}" = 'true' ]] 
 then
 
     preview_file () {
