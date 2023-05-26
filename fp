@@ -62,8 +62,9 @@ without user interaction.  Current default command:
 [4]  -g search and limit results to files, whose content matches the pattern.
 Pattern is an 'extended-regexp' regular expression for standalone grep command
 (also known as "grep -E").  As a side-effect all directories and binary files
-are excluded; only text files are processed and listed.  Case-sensitivity is
-affected by and can be turned off with option -i.
+are excluded; only text files are processed and listed.  Symbolic links are not
+resolved for this particular search, even if option -l is in effect.
+Case-sensitivity is affected by and can be turned off with option -i.
 
 [5]  -d will default to '1' for listing current working directory or starting
 point.  If anything is given at FILES, then this will default to '0' if not
@@ -73,8 +74,8 @@ should traverse and list files from.
 [6]  -t to list files with matching types only.  List can be any combination of
 supported flags: b=block, c=character special, d=directory, p=named pipe,
 f=regular file, l=symbolic link, s=socket, x=executable (directories are also
-executable).  Comma for separation is optiona, such as "-t fx" is equivalent to
-"-t f,x".
+executable), t=text file (uses grep to determine format).  Comma for separation
+is optiona, such as "-t fx" is equivalent to "-t f,x".
 
 [7]  -e a "posix-extended" regular expression to filter out files similar to
 -f.  But regex matches whole known path body, including it's folder parts with
@@ -123,7 +124,7 @@ options:
   -M            nomenu: disable menu command -m and output everything [3]
   -g PATT       grep: extended-regexp filter to match text file content [4]
   -d NUM        maxdepth: number of subfolder levels to dig into  [5]
-  -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [6]
+  -t TYPE       type: limit to d=dir, f=file, t=text, e=executable  [6]
   -f PATT       filter: show only files which shell pattern matches basename
   -e PATT       extended: posix-extended regex match at entire known path  [7]
   -c DIR        change: directory of starting point to search files from
@@ -321,12 +322,14 @@ then
     opt_type="${opt_type//,/}"
     # List of allowed flags (minus the comma, which was just removed prior and
     # will be added later).
-    if ! [[ ${opt_type} =~ ^[bcdpflsx]+$ ]] 
+    if ! [[ ${opt_type} =~ ^[bcdpflsxt]+$ ]] 
     then
         exit 1
-    elif [[ ${opt_type} =~ x ]] 
+    fi
+
+    if [[ ${opt_type} =~ x ]] 
     then
-        # The flag 'x' in 'find 'option '-type' is not supported and requires a
+        # The flag 'x' in 'find' option '-type' is not supported and requires a
         # completley different option instead.  Remove it from list and set the
         # other appropriate option instead.
         opt_type="${opt_type/x/}"
@@ -335,6 +338,18 @@ then
         executable_type=''
     fi
 
+    if [[ ${opt_type} =~ t ]] 
+    then
+        # The flag 't' in 'find' option '-type' is not supported and requires a
+        # completley different option instead.  Remove it from list and set the
+        # other appropriate option instead.
+        opt_type="${opt_type/t/}"
+        if [[ "${opt_grep}" = '' ]]
+        then
+            opt_grep='.'
+        fi
+    fi
+    
     # Any remaining character is a valid flag for '-type' or '-xtype' option at
     # 'find' command.
     if ! [[ "${opt_type}" = '' ]] 
