@@ -59,18 +59,24 @@ without user interaction.  Current default command:
 
     "${opt_menucmd}"
 
-[4]  -d will default to '1' for listing current working directory or starting
+[4]  -g search and limit results to files, whose content matches the pattern.
+Pattern is an 'extended-regexp' regular expression for standalone grep command
+(also known as "grep -E").  As a side-effect all directories and binary files
+are excluded; only text files are processed and listed.  Case-sensitivity is
+affected by and can be turned off with option -i.
+
+[5]  -d will default to '1' for listing current working directory or starting
 point.  If anything is given at FILES, then this will default to '0' if not
 explicitly set.  This option controls how many levels deep of subfolders 'find'
 should traverse and list files from.
 
-[5]  -t to list files with matching types only.  List can be any combination of
+[6]  -t to list files with matching types only.  List can be any combination of
 supported flags: b=block, c=character special, d=directory, p=named pipe,
 f=regular file, l=symbolic link, s=socket, x=executable (directories are also
 executable).  Comma for separation is optiona, such as "-t fx" is equivalent to
 "-t f,x".
 
-[6]  -e a "posix-extended" regular expression to filter out files similar to
+[7]  -e a "posix-extended" regular expression to filter out files similar to
 -f.  But regex matches whole known path body, including it's folder parts with
 slashes too.  Known path depends on what was given as input.  If path consists
 of "./file", then regex cannot match root "/", but it would at "/bin/grep".
@@ -115,11 +121,11 @@ options:
   -o FILE       output: pipe standard stream from -r or -b process to file  [2]
   -m CMD        menu: command for selection, "fzf", "rofi -dmenu", "head"  [3]
   -M            nomenu: disable menu command -m and output everything [3]
-  -g PATT       grep: filter out files by grep extended-regexp matching content
-  -d NUM        maxdepth: number of subfolder levels to dig into  [4]
-  -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [5]
+  -g PATT       grep: extended-regexp filter to match text file content [4]
+  -d NUM        maxdepth: number of subfolder levels to dig into  [5]
+  -t TYPE       type: limit to type of file, d=dir, f=file, e=executable  [6]
   -f PATT       filter: show only files which shell pattern matches basename
-  -e PATT       extended: posix-extended regex match at entire known path  [6]
+  -e PATT       extended: posix-extended regex match at entire known path  [7]
   -c DIR        change: directory of starting point to search files from
   --            stop: parsing options and interpret everything after as FILES
 
@@ -390,7 +396,7 @@ if ! [[ "${opt_grep}" = '' ]]
 then
     readarray -t array_files <<<"${files}"
     files=$(grep --color=never --no-messages --files-with-matches \
-            --directories=skip --binary-files=binary --max-count=1 \
+            --directories=skip --binary-files=without-match --max-count=1 \
             ${grep_ignorecase} \
             --extended-regexp "${opt_grep}" \
             -- "${array_files[@]}")
