@@ -206,7 +206,7 @@ shift "$((OPTIND-1))"
 # Read each line from stdin stream into an array, to be combined with
 # positional arguments at later point.
 declare -a stdin=()
-if [[ "${opt_stdin}" = 'true' ]] 
+if [[ "${opt_stdin}" = 'true' ]]
 then
     mapfile -t stdin
 fi
@@ -226,7 +226,7 @@ then
                       -- "${opt_output//\~/${HOME}}")"
         # Don't allow any wildcard in output name, to minimize the risk of
         # accidents with later "rm" command.
-        if [[ ${opt_output} =~ [][*?] ]] 
+        if [[ ${opt_output} =~ [][*?] ]]
         then
             exit 1
         fi
@@ -238,7 +238,7 @@ cd "${opt_changedir}" || exit 1
 
 # 'find' option '-L' follows and checks destination of symbolic links, while
 # '-P' never follows.
-if [ "${opt_symlinks}" = 'true' ] 
+if [ "${opt_symlinks}" = 'true' ]
 then
     symlinks='-L'
 else
@@ -247,7 +247,7 @@ fi
 
 # 'find' option '-xdev' to not descend into directories of other filesystems.
 # '-mount' is a synonym for '-xdev'.
-if [ "${opt_xdev}" = 'true' ] 
+if [ "${opt_xdev}" = 'true' ]
 then
     xdev='-xdev'
 else
@@ -255,7 +255,7 @@ else
 fi
 
 # 'find' option '-name' to simulate hidden dot files like 'ls' at default.
-if [[ "${opt_all}" = 'true' ]] 
+if [[ "${opt_all}" = 'true' ]]
 then
     all_pattern='*'
 else
@@ -263,7 +263,7 @@ else
 fi
 
 # case-sensitivity mode for 'filter_pattern' and 'extended_pattern'.
-if [[ "${opt_ignorecase}" = 'true' ]] 
+if [[ "${opt_ignorecase}" = 'true' ]]
 then
     filter_mode='-iname'
     extended_mode='-iregex'
@@ -274,7 +274,7 @@ fi
 
 # 'find' option '-name' or '-iname' to filter out files with shell pattern,
 # depending on scripts 'filter_mode' variable.
-if [[ "${opt_filter}" = '' ]] 
+if [[ "${opt_filter}" = '' ]]
 then
     filter_pattern='*'
 else
@@ -317,17 +317,17 @@ fi
 
 # 'find' option '-type' and '-xtype' to list specified filetypes only.
 executable_type=""
-if ! [[ "${opt_type}" = '' ]] 
+if ! [[ "${opt_type}" = '' ]]
 then
     opt_type="${opt_type//,/}"
     # List of allowed flags (minus the comma, which was just removed prior and
     # will be added later).
-    if ! [[ ${opt_type} =~ ^[bcdpflsxt]+$ ]] 
+    if ! [[ ${opt_type} =~ ^[bcdpflsxt]+$ ]]
     then
         exit 1
     fi
 
-    if [[ ${opt_type} =~ x ]] 
+    if [[ ${opt_type} =~ x ]]
     then
         # The flag 'x' in 'find' option '-type' is not supported and requires a
         # completley different option instead.  Remove it from list and set the
@@ -338,7 +338,7 @@ then
         executable_type=''
     fi
 
-    if [[ ${opt_type} =~ t ]] 
+    if [[ ${opt_type} =~ t ]]
     then
         # The flag 't' in 'find' option '-type' is not supported and requires a
         # completley different option instead.  Remove it from list and set the
@@ -349,10 +349,10 @@ then
             opt_grep='.'
         fi
     fi
-    
+
     # Any remaining character is a valid flag for '-type' or '-xtype' option at
     # 'find' command.
-    if ! [[ "${opt_type}" = '' ]] 
+    if ! [[ "${opt_type}" = '' ]]
     then
         # These options for 'find' command requires a comma for each flag.
         # This puts a comma between each flag.
@@ -361,7 +361,7 @@ then
 
         # '-type' option from 'find' does not check target of symbolic link,
         # while '-xtype' follow and resolve to destination.
-        if [ "${opt_symlinks}" = 'false' ] 
+        if [ "${opt_symlinks}" = 'false' ]
         then
             opt_type='-type '"${opt_type}"
         else
@@ -397,7 +397,7 @@ files="$(find "${symlinks}" \
                 2>/dev/null)"
 
 # Quit early if nothing is found.
-if [[ "${files}" =~ \\w ]] 
+if [[ "${files}" =~ \\w ]]
 then
     exit 1
 fi
@@ -426,7 +426,7 @@ selected=""
 if [[ "${opt_menucmd}" = '' ]] || [[ "${opt_nomenu}" = 'true' ]]
 then
     selected="${files}"
-elif [[ "${opt_preview}" = 'true' ]] 
+elif [[ "${opt_preview}" = 'true' ]]
 then
 
     preview_file () {
@@ -438,7 +438,7 @@ then
         # consistency.
         links="${2}"
 
-        if [[ "${links}" = 'true' ]] 
+        if [[ "${links}" = 'true' ]]
         then
             path="$(readlink --canonicalize --no-newline --quiet -- "${1}")"
         else
@@ -448,10 +448,10 @@ then
         ftype="$(file -b --mime -- "${path}")"
         printf '%s:\n%s\n\n' "${path}" "${ftype}"
 
-        if [[ ${ftype} =~ text/ || ${ftype} =~ charset=us-ascii ]] 
+        if [[ ${ftype} =~ text/ || ${ftype} =~ charset=us-ascii ]]
         then
             cat --number -- "${path}"
-        elif [ "${ftype}" == 'inode/directory; charset=binary' ] 
+        elif [ "${ftype}" == 'inode/directory; charset=binary' ]
         then
             # C=columns, F=classify
             ls --almost-all --ignore-backups -C -F -- "${path}"
@@ -468,7 +468,7 @@ else
     selected="$(printf '%s' "${files}" | ${opt_menucmd})"
 fi
 
-if [ "${selected}" = '' ] 
+if [ "${selected}" = '' ]
 then
     exit 1
 fi
@@ -486,30 +486,30 @@ num_selections=$(echo "${selected}" | wc -l)
 
 while IFS= read -r path
 do
-    if [[ "${opt_symlinks}" = 'true' ]] 
+    if [[ "${opt_symlinks}" = 'true' ]]
     then
         # /absolute/path/Filename.txt
         path=$(readlink --canonicalize-existing --no-newline --quiet \
                -- "${path}")
-        if [ "${path}" = '' ] 
+        if [ "${path}" = '' ]
         then
             exit 1
         fi
     fi
 
-    if [[ "${opt_name}" = 'true' ]] 
+    if [[ "${opt_name}" = 'true' ]]
     then
         # Filename.txt
         printf '%s\n' "${path##*/}" \
             || exit 1
-    elif [[ "${opt_kinpath}" = 'true' ]] 
+    elif [[ "${opt_kinpath}" = 'true' ]]
     then
         # ../path/Filename.txt
         change=$(readlink --canonicalize-existing --no-newline --quiet \
                    -- "${opt_changedir}")
         realpath --relative-to="${change}" --no-symlinks --quiet -- "${path}" \
             || exit 1
-    elif [[ "${opt_symlinks}" = 'false' ]] 
+    elif [[ "${opt_symlinks}" = 'false' ]]
     then
         # /absolute/path/Filename.txt
         realpath --canonicalize-missing --no-symlinks --quiet -- "${path}" \
