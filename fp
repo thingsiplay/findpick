@@ -374,18 +374,27 @@ then
     exit 1
 fi
 
+# The positional arguments and stdin array with filenames starting with a dash
+# will confuse 'find'.  Therefore any leading filename starting with a "-" is
+# a relative path and a "./" can be added safely to it's front.
+path_array=()
+for p in "${@}" "${stdin[@]}"
+do
+    if [[ "${p}" =~ ^- ]]
+    then
+        p="${p/-/.\/-}"
+    fi
+    path_array+=( "${p}" )
+done
+
 # Apply search and generate a newline separated and sorted list of files.
 # Strip out needless front "./" and last slash for directories.  Do not quote
 # the free standing variables such as 'opt_type' in the command chain below,
 # but make sure they are valid options and don't interfere with the commandline
 # arguments to 'find'.
-#
-# The positional arguments and stdin array with filenames starting with a dash
-# will confuse 'find'.  Therefore any leading filename starting with a "-" is
-# a relative path and a "./" can be added safely to it's front.
 files="$(find "${symlinks}" \
                 -O3 \
-                "${@/-/.\/-}" "${stdin[@]/-/.\/-}" \
+                "${path_array[@]}" \
                 -readable \
                 -nowarn \
                 -maxdepth "${opt_maxdepth}" \
