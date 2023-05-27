@@ -75,7 +75,7 @@ should traverse and list files from.
 supported flags: b=block, c=character special, d=directory, p=named pipe,
 f=regular file, l=symbolic link, s=socket, x=executable (directories are also
 executable), t=text file (uses grep to determine format).  Comma for separation
-is optiona, such as "-t fx" is equivalent to "-t f,x".
+is optional, such as "-t fx" is equivalent to "-t f,x".
 
 [7]  -e a "posix-extended" regular expression to filter out files similar to
 -f.  But regex matches whole known path body, including it's folder parts with
@@ -139,7 +139,7 @@ error code:
 examples:
   \$ ${pname} -l
   \$ ${pname} -d0 -ap -t f -- .vim*
-  \$ ${pname} -d2 -rb -c ~/bin -m 'rofi -dmenu'
+  \$ ${pname} -d2 -b -c ~/bin -m 'rofi -dmenu'
 
 Copyright © 2023 Tuncay D. <https://github.com/thingsiplay/findpick>'
 EOF
