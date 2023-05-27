@@ -379,9 +379,13 @@ fi
 # the free standing variables such as 'opt_type' in the command chain below,
 # but make sure they are valid options and don't interfere with the commandline
 # arguments to 'find'.
+#
+# The positional arguments and stdin array with filenames starting with a dash
+# will confuse 'find'.  Therefore any leading filename starting with a "-" is
+# a relative path and a "./" can be added safely to it's front.
 files="$(find "${symlinks}" \
                 -O3 \
-                "${@}" "${stdin[@]}" \
+                "${@/-/.\/-}" "${stdin[@]/-/.\/-}" \
                 -readable \
                 -nowarn \
                 -maxdepth "${opt_maxdepth}" \
@@ -393,7 +397,7 @@ files="$(find "${symlinks}" \
                 -regextype posix-extended \
                 "${extended_mode}" "${extended_pattern}" \
                 -print \
-                2>/dev/null)"
+        2>/dev/null)"
 
 # Quit early if nothing is found.
 if [[ "${files}" =~ \\w ]]
