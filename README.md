@@ -10,12 +10,12 @@ General purpose file picker combining "find" command with a fuzzy finder.
 
 Output absolute fullpath of selected file. A frontend script to list files by
 [find](https://www.man7.org/linux/man-pages/man1/find.1.html) command, generate
-an interactive menu with [fzf](https://github.com/junegunn/fzf),
-[rofi](https://github.com/davatorium/rofi) or other alike tools and choose an
-entry. Intended use case is similar to file picker dialogs in desktop
-environments, but with a search bar instead navigating through filesystem.
-While `fzf` has first class support, other menu builder or filters can be used
-instead too. 
+an interactive menu out of it with [fzf](https://github.com/junegunn/fzf),
+[rofi](https://github.com/davatorium/rofi) or other similar tools and write
+selected entry to stdout. Intended use case is similar to file picker dialogs
+in desktop environments, but with a search bar instead navigating through
+filesystem. While `fzf` has first class support, other menu builder or filters
+can be used instead too. 
 
 ## Why?
 
@@ -30,15 +30,15 @@ needed to create a separate script. And here we are.
 Required GNU/Linux utilities, depending on what commandline options are enabled:
 
 ```
-bash find touch rm cat sed sort ls file readlink realpath nohup xdg-open
+bash find touch rm cat sed grep sort ls file readlink realpath nohup xdg-open
 ```
 
 In example [nohup](https://www.man7.org/linux/man-pages/man1/nohup.1.html) or
 [xdg-open](https://linux.die.net/man/1/xdg-open) won't be needed, if the option
 `-r` isn't set at all. So these programs aren't hard requirements, rather soft
-requirements the moment they are called.
+requirements the moment they are needed.
 
-Optional program used for menu generation by default with `-m` command:
+Optional program used for menu building by default at `-m` command:
 
 ```
 fzf
@@ -85,20 +85,20 @@ usage: fp [OPTIONS] [FILES...]
 
 Bash's internal function
 [getopts](https://www.gnu.org/savannah-checkouts/gnu/bash/manual/html_node/Bourne-Shell-Builtins.html#index-getopts)
-is used to parse options. (Note: Not to be confused with the standalone program
-`getopt`, which is a totally different parser and not part of Bash.)
+is used to parse options. (Note: *Not to be confused with the standalone program
+`getopt`, which is a totally different parser and not part of Bash.*)
 
 Due to parser restrictions in Bash, there are only short form of OPTIONS like
 `-h`. Long form such as `--help` are not supported. OPTIONS in general start
-with a single dash `-` followed by a letter. They are either standalones like
-`-h` or with an additional argument such as `-c DIR`. OPTIONS can be combined
+with a single dash `-` followed by a letter. They are either standalone like
+`-h` or have an additional argument such as `-c DIR`. OPTIONS can be combined
 too; in example `-p -t x -c bin` is equivalent to `-ptx -cbin`.
 
 FILES are positional arguments, meaning one or more paths to files and folders.
 These aren't OPTIONS and therefore don't start with a dash `-`. FILES must be
 given after any OPTIONS in the commandline, otherwise the option parser gets
 confused. Use double dash `--` to stop parsing OPTIONS and indicate that
-everything after the double dash is a file or folder.
+everything after the double dash is a file or folder, such as `fp -a -- -*`
 
 If no FILES is given, then either the content of current working directory or
 the one set by `-c DIR` is listed. However if any FILES is given, then only
@@ -128,8 +128,8 @@ $ fp -a
 
 ### Directories
 
-List only directories and show a preview box in `fzf` for every file. Note, the
-option `-p` only works with `fzf`:
+List only directories. Show a preview box in `fzf` to list content of each
+folder. Note, the option `-p` only works with `fzf`:
 
 ```
 $ fp -p -td
@@ -138,8 +138,8 @@ $ fp -p -td
 ### Vim dotfiles
 
 Resolve symlinks to their target and check if the target file exists. List all
-files (including dot files) in current working directy which start with ".vim",
-without going into folders and reading their content:
+files and folders (including dot files) in current working directy which start
+with ".vim" .
 
 ```
 $ fp -al -- .vim*
@@ -180,7 +180,7 @@ will also be seen as incomplete path for the regex filter. That means if
 program is invoked like `fp ~/Downloads/*`, then at start time the regex filter
 can "see" entire absolute path and match starting from root "/". But if
 commandline was invoked like `fp Downloads/*`, then the resulting paths are
-relative and the regex filter cannot match on other parts than filename.
+relative and the regex filter cannot match on other parts than it can see.
 
 For demonstration purposes the next example is composed to mimic the output
 from previous example and match on basename part only.
@@ -191,9 +191,9 @@ $ fp -c ~ -i -e '.*/[bp][^/]*$'
 
 ### Randomizer
 
-The interactive menu is replaced by a randomizer, which shuffles all found
-files and output them together. Then the program ends, but its output is piped
-into a different program `head` to read the first entry.
+The interactive menu is replaced by a randomizer command. It shuffles around
+all found files and output the complete list. The result is then piped right
+into `head` to read the first entry.
 
 ```
 $ fp -d3 -m 'sort -R' | head -n1
@@ -201,41 +201,48 @@ $ fp -d3 -m 'sort -R' | head -n1
 
 ### Stdin
 
-Standard input stream can be read with `-s`. Each newline separated file is
-equivalent to FILES from commandline arguments. In this example `grep` is
-configured to output filenames and paths only. The resulting list is piped to
-`fp`, which then any symlink is is expanded, due to `-l` option.
+Standard input stream can be read with `-s` . Each newline separated file is
+equivalent to FILES from commandline arguments. In this example we output a
+list of folders and remove the leading slash "/" to make them relative. The
+result is then piped into `fp` to show a list of existing folders with a
+preview.
 
 ```
-grep --no-messages --files-with-matches -im1 -F 'LICENSE' -- ~/bin/* | fp -spl
-
+cat .gitignore | sed 's+^/++' | fp -sp
 ```
 
-### Run
+### Run programs
 
-Option `-tfx` lists executable files only. Run the selected entry as a command
-if it's an executable, or open the file with it's associated default
-application. `-b` is here similar to `-r`, but executes the process in the
-background without waiting. The output of the command is written to specified
-file, otherwise will be output to stdout.
+Option `-tfx` is short form for `-t f,x` to list regular files with the
+executable bit set (such as scripts and applications). The `-r` option
+instructs to run the selected entry as a command and wait for finish.
 
 ```
-$ fp -c ~/bin -tfx -bo '~/output.txt'
+$ fp -c ~/bin -tfx -r
 ```
 
-Running commands and programs with `-r` or `-b` can be problematic in some
-situations, such as if the selected script or program waits for an input. Or
-if it does some unusual things. So be careful. BTW multiple selections can
-be executed as well and even output to same file. In such a case temporary
-files are written and deleted before combining into output file.
+### Run anything in background
+
+Similar to prior example, but here we do not limit the listing. An executable
+file will be run as a command. Any other filetype, including directories, are
+opened up with it's default associated program detected by `xdg-open`. Instead
+`-r` we use `-b` to run a selection, but in the background without blocking.
+`-o` captures the output and saves it to file.
+
+```
+$ fp -c ~/bin -bo '~/output.txt'
+```
+
+Attention: Be careful to not select multiple files when using a run action.
+Otherwise all selected programs will be executed.
 
 ### No Menu
 
-You can also defeat the purpose of this program and just not use a menu at all.
-Output every path without selection by disabling the menu with `-M` or giving
-an empty value with `-m ''` (note the space between `m` and the quotes `''`).
-Be careful combining this with execution options such as `-r` and `-b`, as
-potentially thousands of programs could run at the same time.
+Disable the menu with `-M` or an empty value at `-m ''` (note the space between
+`m` and the quotes `''`). In this mode there won't be an interactive menu to
+select; each entry is evaluated and output as a newline separated list. This
+can considerably be slow. Also be very careful when combining this with the run
+options `-r` or `-b`, as potentially every single entry would be executed then.
 
 ```
 $ fp -M *
