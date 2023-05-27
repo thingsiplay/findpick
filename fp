@@ -194,7 +194,6 @@ do
         e)  opt_extended="${OPTARG}" ;;
         g)  opt_grep="${OPTARG}" ;;
         c)  opt_changedir="${OPTARG}" ;;
-        ?)  continue ;;
         *)  show_help >&2
             exit 1
             ;;
