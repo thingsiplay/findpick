@@ -504,25 +504,24 @@ do
     then
         # Filename.txt
         printf '%s\n' "${path##*/}" \
-            || exit 1
-    elif [[ "${opt_kinpath}" = 'true' ]]
+               || exit 1
+   elif [[ "${opt_kinpath}" = 'true' ]]
     then
         # ../path/Filename.txt
         change=$(readlink --canonicalize-existing --no-newline --quiet \
-                   -- "${opt_changedir}")
-        realpath --relative-to="${change}" --no-symlinks --quiet -- "${path}" \
-            || exit 1
+                          -- "${opt_changedir}")
+        path=$(realpath --relative-to="${change}" --no-symlinks --quiet \
+                        -- "${path}") \
+               || exit 1
     elif [[ "${opt_symlinks}" = 'false' ]]
     then
         # /absolute/path/Filename.txt
-        realpath --canonicalize-missing --no-symlinks --quiet -- "${path}" \
-            || exit 1
-    else
-        # /absolute/path/Filename.txt
-        # At this point 'path' is already extended with 'readlink'.
-        printf '%s\n' "${path}" \
-            || exit 1
+        path=$(realpath --canonicalize-missing --no-symlinks --quiet \
+                        -- "${path}") \
+               || exit 1
     fi
+
+    printf '%s\n' "${path}" || exit 1
 
     # Depending on the file type, either open with default application or
     # execute the selection as a command.  As a background process, nohup will
@@ -531,6 +530,12 @@ do
     # applications can be selected with script.
     if [[ "${opt_run}" = 'true' ]]
     then
+        if ! [[ "${path}" =~ ^/ ]]
+        then
+            # /absolute/path/Filename.txt
+            path=$(realpath --canonicalize-missing --no-symlinks --quiet \
+                            -- "${path}")
+        fi
         # Executable file.
         if [[ -f "${path}" && -x "${path}" ]]
         then
