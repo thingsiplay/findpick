@@ -1,0 +1,94 @@
+#!/bin/env bash
+
+###############################################################################
+# Change the default values to your liking.  Any commandline argument will have
+# higher priority than these defaults.
+#
+# -r CMD: Folder where the script will start looking at.
+default_changedir='~'
+#
+# -c DIR: Command to run the selected file with.
+default_runcmd='echo'
+#
+###############################################################################
+
+show_help () {
+cat << EOF
+usage: ${0##*/} [-h] [-r CMD] [-c DIR] [--] [ARGS...]
+
+Sample script for findpick.
+
+positional arguments after --:
+  ARGS          addtional arguments for -r command
+
+options:
+  -h            help: print this help and exit
+  -r CMD        run: command with selection as argument
+  -c DIR        change: directory of starting point
+  --            stop: parsing options and interpret everything after as ARGS
+
+defaults:
+  -r            "${default_runcmd}"
+  -c            "${default_changedir}"
+
+Copyright © 2023 Tuncay D. <https://github.com/thingsiplay/findpick>'
+EOF
+}
+
+while getopts ':hr:c:' OPTION
+do
+    case "${OPTION}" in
+        h)  show_help
+            exit 0
+            ;;
+        r)  opt_runcmd="${OPTARG}" ;;
+        c)  opt_changedir="${OPTARG}" ;;
+        ?)  continue ;;
+        *)  exit 1 ;;
+    esac
+done
+shift "$((OPTIND-1))"
+
+# The command to execute the selected file.
+if [[ -z "${opt_runcmd}" ]]
+then
+    opt_runcmd="${default_runcmd}"
+fi
+opt_runcmd="${opt_runcmd/#\~/${HOME}}"
+
+# The starting point of the script.
+if [[ -z "${opt_changedir}" ]]
+then
+    opt_changedir="${default_changedir}"
+fi
+opt_changedir="${opt_changedir/#\~/${HOME}}"
+cd "${opt_changedir}" || exit 1
+
+# Depending on if the script runs in an interactive terminal or is run without
+# one, use different appropriate menu command configuration.
+if [ -t 0 ]
+then
+    # terminal
+    menucmd='fzf --reverse --cycle --scheme=path'
+else
+    # gui
+    menucmd='rofi -dmenu -p '"${0##*/}"' -matching normal -i'
+fi
+
+# Show initial directory with all hidden files.  Only first level of files
+# and folders should be shown
+selection="$(fp -m "${menucmd}" -c "${opt_changedir}" -a | head -n1)"
+
+# In the next loop continue until user aborts selection or a file is selected.
+# From now on list files and folders that are multiple level deep in the
+# directory hirarchy from this position.
+until [[ -f "${selection}" || -z "${selection}" ]]
+do
+    selection="$(fp -m "${menucmd}" -c "${selection}" -d2 | head -n1)"
+done
+
+# Run the selected file with the user command.
+if [[ ! -z "${selection}" ]]
+then
+    ${opt_runcmd} "${@}" "${selection}"
+fi
