@@ -35,7 +35,7 @@ opt_output=''
 
 show_version () {
 cat << EOF
-findpick v0.3
+findpick v0.4
 EOF
 }
 
