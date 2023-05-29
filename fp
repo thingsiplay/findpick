@@ -40,6 +40,11 @@ EOF
 }
 
 show_help_notes () {
+    local wrap_menucmd
+    wrap_menucmd="$(printf '%s' "${opt_menucmd}" \
+                    | fold -sw 80 \
+                    | sed -e 's/^/    /')"
+
 cat << EOF
 
 [1]  -p will add several "-preview" related options to the -m command.  This is
@@ -57,7 +62,7 @@ newline separated list from stdin and output selected file to stdout. An empty
 menu command as '-m ""' or option -M as a shortcut will just output everything
 without user interaction.  Current default command:
 
-    "${opt_menucmd}"
+${wrap_menucmd}
 
 [4]  -g search and limit results to files, whose content matches the pattern.
 Pattern is an 'extended-regexp' regular expression for standalone grep command
@@ -95,9 +100,10 @@ cat << EOF
 usage:
   ${pname} [OPTIONS] [FILES...]
 
-  ${pname} [-h | -H | -V] [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b]
-  ${pspac} [-M] [-g PATT]
-  ${pspac} [-o FILE] [-m CMD] [-d NUM] [-t TYPE] [-f PATT] [-e PATT] [-c DIR]
+  ${pname} [-h | -H | -V]
+  ${pspac} [-s] [-a] [-l] [-x] [-k | -n] [-p] [-i] [-r] [-b] [-M]
+  ${pspac} [-o FILE] [-m CMD] [-g PATT] [-d NUM] [-t TYPE] [-f PATT] [-e PATT]
+  ${pspac} [-c DIR]
   ${pspac} [--] [FILES...]
 
 General purpose file picker combining "find" command with a fuzzy finder.
@@ -412,7 +418,7 @@ files=$(printf '%s' "${files}" \
 
 if ! [[ "${opt_grep}" = '' ]]
 then
-    readarray -t array_files <<<"${files}"
+    mapfile -t array_files <<<"${files}"
     files=$(grep --color=never --no-messages --files-with-matches \
             --directories=skip --binary-files=without-match --max-count=1 \
             ${grep_ignorecase} \
@@ -470,6 +476,7 @@ then
 else
     selected="$(printf '%s' "${files}" | ${opt_menucmd})"
 fi
+
 
 if [ "${selected}" = '' ]
 then

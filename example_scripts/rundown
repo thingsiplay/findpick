@@ -19,7 +19,7 @@ usage: ${0##*/} [-h] [-r CMD] [-c DIR] [--] [ARGS...]
 Sample script for findpick.
 
 positional arguments after --:
-  ARGS          addtional arguments for -r command
+  ARGS          additional arguments for -r command
 
 options:
   -h            help: print this help and exit

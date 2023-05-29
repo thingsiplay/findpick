@@ -30,7 +30,7 @@ needed to create a separate script. And here we are.
 Required GNU/Linux utilities, depending on what commandline options are enabled:
 
 ```
-bash find touch rm cat sed grep sort ls file readlink realpath nohup xdg-open
+bash find touch rm cat sed grep sort fold ls file readlink realpath nohup xdg-open
 ```
 
 In example [nohup](https://www.man7.org/linux/man-pages/man1/nohup.1.html) or

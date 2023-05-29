@@ -87,7 +87,7 @@ install_program () {
     file_no_ext="${filename%.*}"
     option="${2}"
 
-    "${install_cmd}" -m 755 -b -C -D -t "${install_dir}" "${filename}" 
+    "${install_cmd}" -m 755 -b -C -D -t "${install_dir}" "${filename}"
 
     if ! [ "${?}" == 0 ]
     then
@@ -151,8 +151,5 @@ else
     ask_proceed
 fi
 
-# Install following files by removing their extension. However, the symbolic
-# link for main application is created so that it can be imported by the "-up"
-# Python script. Python requires ".py" file extension in order for import to
-# work.
+# Find install dir and install following files by removing their extension.
 install_program "fp"
