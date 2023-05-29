@@ -247,3 +247,19 @@ options `-r` or `-b`, as potentially every single entry would be executed then.
 ```
 $ fp -M *
 ```
+
+# Known bugs, quirks, pitfalls, limitations and workarounds
+
+## Bash
+
+Not a bug in **findpick**, but default behaviour or configuration of **Bash**
+itself can cause confusion or unexpected results.
+
+* If you use a wildcard at shell level to give a list of files over, then
+  dotfiles starting with a dot "." might not be included. That is not a
+  limitation of the script itself. In example if you run `fp -a`, then the
+  script itself will look into the current working directory and read all files
+  including dotfiles. But if you do `fp -a *`, then you explicitly give a list
+  of files from what Bash sees on the commandline, which excludes dotfiles.
+  Therefore the time the script receives the list, it cannot see dotfiles, even
+  with `-a` option in effect.
