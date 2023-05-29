@@ -250,7 +250,17 @@ $ fp -M *
 
 # Known bugs, quirks, pitfalls, limitations and workarounds
 
-## Bash
+## Findpick issues
+
+* The menu command with `-m` is unprotected at the time of execution. It is not
+  surrounded by quotation marks, meaning if the command includes any spaces it
+  might be broken up and no longer function. Commands such as `fp -m 'grep -e
+  ". ."'` run at terminal will fail, because the quotes are resolved and
+  suddenlty it's broken in the script. However `fp -m 'grep -e ".."'` will
+  work, because there is no space. At this time of writing it is best to avoid
+  spaces that needs quotations to be seen as a single argument.
+
+## Bash issues
 
 Not a bug in **findpick**, but default behaviour or configuration of **Bash**
 itself can cause confusion or unexpected results.
@@ -263,3 +273,4 @@ itself can cause confusion or unexpected results.
   of files from what Bash sees on the commandline, which excludes dotfiles.
   Therefore the time the script receives the list, it cannot see dotfiles, even
   with `-a` option in effect.
+

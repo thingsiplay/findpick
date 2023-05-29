@@ -485,7 +485,6 @@ else
     selected="$(printf '%s' "${files}" | ${opt_menucmd})"
 fi
 
-
 if [ "${selected}" = '' ]
 then
     exit 1
