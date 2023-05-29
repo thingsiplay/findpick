@@ -512,6 +512,8 @@ do
     if [[ "${opt_name}" = 'true' ]]
     then
         # Filename.txt
+        # Do not save the output to 'path' yet, as the potential directory parts
+        # of the path are needed.
         printf '%s\n' "${path##*/}" \
                || exit 1
    elif [[ "${opt_kinpath}" = 'true' ]]
@@ -530,7 +532,13 @@ do
                || exit 1
     fi
 
-    printf '%s\n' "${path}" || exit 1
+    if [[ "${opt_name}" = 'false' ]]
+    then
+        # ../path/Filename.txt
+        # or
+        # /absolute/path/Filename.txt
+        printf '%s\n' "${path}" || exit 1
+    fi
 
     # Depending on the file type, either open with default application or
     # execute the selection as a command.  As a background process, nohup will
