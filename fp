@@ -8,7 +8,15 @@ set -u
 # purpose and which option belongs to what variable.
 #
 # 'opt_menucmd' Must be a program reading stdin as list and output to stdout.
-opt_menucmd='fzf --reverse --multi --cycle --scheme=path'
+# Following construct with 'read' makes it easy to break the command into
+# multiple lines.
+IFS='' read -r -d '' opt_menucmd <<"EOF"
+fzf --reverse --multi --cycle --scheme=path
+    --height=~100%
+    --bind change:first
+    --bind esc:cancel+clear-selection
+EOF
+
 # Empty 'opt_changedir' defaults to current working dir.
 opt_changedir=''
 
