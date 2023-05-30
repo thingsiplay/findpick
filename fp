@@ -12,9 +12,13 @@ set -u
 # multiple lines.
 IFS='' read -r -d '' opt_menucmd <<"EOF"
 fzf --reverse --multi --cycle --scheme=path
-    --height=~100%
     --bind change:first
     --bind esc:cancel+clear-selection
+    --height=~80%
+    --border=none
+    --prompt=$_
+    --marker=*
+    --no-separator
 EOF
 
 # Empty 'opt_changedir' defaults to current working dir.
