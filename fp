@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 # Abort on unbound variable, also known as "set -o nounset".
-set -u 
+set -u
 
 # Default settings.  These are active until the corresponding commandline
 # options overwrites them.  Lookup in the below show_help section to see their
@@ -45,6 +45,25 @@ show_version () {
 cat << EOF
 findpick v0.5
 EOF
+}
+
+error () {
+    declare -A error_types
+    error_types=( ['Error']=1
+                  ['ValueError']=2
+                  ['OSError']=3
+                  ['AbortError']=4 )
+
+    local type="${1}"
+    local code="${error_types["${type}"]}"
+
+    if [[ "${#}" -gt 1 ]]
+    then
+        shift
+        printf '%s: %s\n' "${type}" "${*}" >&2
+    fi
+
+    exit "${code}"
 }
 
 show_help_notes () {
@@ -218,7 +237,7 @@ do
         g)  opt_grep="${OPTARG}" ;;
         c)  opt_changedir="${OPTARG}" ;;
         *)  show_usage >&2
-            exit 1
+            error 'ValueError'
             ;;
     esac
 done
@@ -250,7 +269,8 @@ then
         # accidents with later "rm" command.
         if [[ ${opt_output} =~ [][*?] ]]
         then
-            exit 1
+            msg='Globbing "[, ], *, ?" unsupported in output filename:'
+            error 'ValueError' "${msg}" "\"${opt_output}\""
         fi
         # touch to check permissions.  Delete file for fresh start.
         touch -- "${opt_output}" || exit 1 && rm -- "${opt_output}"
@@ -346,7 +366,8 @@ then
     # will be added later).
     if ! [[ ${opt_type} =~ ^[bcdpflsxt]+$ ]]
     then
-        exit 1
+        msg='Unsupported flag in type:'
+        error 'ValueError' "${msg}" "${opt_type}"
     fi
 
     if [[ ${opt_type} =~ x ]]
@@ -428,7 +449,8 @@ files="$(find "${symlinks}" \
 # Quit early if nothing is found.
 if [[ "${files}" =~ \\w ]]
 then
-    exit 1
+    # No error message if nothing is found.
+    error 'OSError'
 fi
 
 files=$(printf '%s' "${files}" \
@@ -499,7 +521,8 @@ fi
 
 if [ "${selected}" = '' ]
 then
-    exit 1
+    # No need for an error message if nothing is selected.
+    error "AbortError"
 fi
 
 # Usually the user selection consists of single entry.  But it is possible to
@@ -515,6 +538,7 @@ num_selections=$(echo "${selected}" | wc -l)
 
 while IFS= read -r path
 do
+    original_path="${path}"
     if [[ "${opt_symlinks}" = 'true' ]]
     then
         # /absolute/path/Filename.txt
@@ -522,7 +546,8 @@ do
                -- "${path}")
         if [ "${path}" = '' ]
         then
-            exit 1
+            msg='No access or cannot find file:'
+            error 'OSError' "${msg}" "${original_path}"
         fi
     fi
 
@@ -531,22 +556,27 @@ do
         # Filename.txt
         # Do not save the output to 'path' yet, as the potential directory parts
         # of the path are needed.
+        msg='Cannot output name of file from path:'
         printf '%s\n' "${path##*/}" \
-               || exit 1
+               || error 'OSError' "${msg}" "${original_path}"
    elif [[ "${opt_kinpath}" = 'true' ]]
     then
         # ../path/Filename.txt
+        msg='Cannot build relative path from file:'
         change=$(readlink --canonicalize-existing --no-newline --quiet \
-                          -- "${opt_changedir}")
+                          -- "${opt_changedir}") \
+               || error 'OSError' "${msg}" "${original_path}"
+
         path=$(realpath --relative-to="${change}" --no-symlinks --quiet \
                         -- "${path}") \
-               || exit 1
+               || error 'OSError' "${msg}" "${original_path}"
     elif [[ "${opt_symlinks}" = 'false' ]]
     then
+        msg='Cannot build absolute path from file'
         # /absolute/path/Filename.txt
         path=$(realpath --canonicalize-missing --no-symlinks --quiet \
                         -- "${path}") \
-               || exit 1
+               || error 'OSError' "${msg}" "${original_path}"
     fi
 
     if [[ "${opt_name}" = 'false' ]]
@@ -554,7 +584,10 @@ do
         # ../path/Filename.txt
         # or
         # /absolute/path/Filename.txt
-        printf '%s\n' "${path}" || exit 1
+        msg='Output of path failed:'
+        printf '%s\n' "${path}" \
+                || error 'OSError' "${msg}" "${original_path}"
+
     fi
 
     # Depending on the file type, either open with default application or
@@ -566,9 +599,11 @@ do
     then
         if ! [[ "${path}" =~ ^/ ]]
         then
+            msg='Cannot build absolute path from file'
             # /absolute/path/Filename.txt
             path=$(realpath --canonicalize-missing --no-symlinks --quiet \
-                            -- "${path}")
+                            -- "${path}") \
+                   || error 'OSError' "${msg}" "${original_path}"
         fi
         # Executable file.
         if [[ -f "${path}" && -x "${path}" ]]
