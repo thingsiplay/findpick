@@ -247,7 +247,7 @@ then
         touch -- "${opt_output}" || exit 1 && rm -- "${opt_output}"
 fi
 
-cd "${opt_changedir}" || exit 1
+cd -- "${opt_changedir}" || exit 1
 
 # 'find' option '-L' follows and checks destination of symbolic links, while
 # '-P' never follows.
@@ -395,11 +395,14 @@ fi
 # arguments to 'find'.
 #
 # The positional arguments and stdin array with filenames starting with a dash
-# will confuse 'find'.  Therefore any leading filename starting with a "-" is
-# a relative path and a "./" can be added safely to it's front.
+# will confuse 'find'.  Therefore any leading filename starting with a "-" is a
+# relative path and a "./" can be added safely to it's front.  Also replace "~"
+# with users home directory, in case path was passed without shell
+# interpretation.
+argv=( "${@/#\~/$HOME}" "${stdin[@]/#\~/${HOME}}" )
 files="$(find "${symlinks}" \
                 -O3 \
-                "${@/#-/.\/-}" "${stdin[@]/#-/.\/-}" \
+                "${argv[@]/#-/.\/-}" \
                 -readable \
                 -nowarn \
                 -maxdepth "${opt_maxdepth}" \
