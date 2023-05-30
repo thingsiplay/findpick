@@ -98,12 +98,11 @@ of "./file", then regex cannot match root "/", but it would at "/bin/grep".
 EOF
 }
 
-show_help () {
-    local pname
+show_usage () {
     local pspac
+    local pname
     pname="${0##*/}"
     pspac="$(printf '%s' "${pname}" | sed 's/./ /g')"
-
 cat << EOF
 usage:
   ${pname} [OPTIONS] [FILES...]
@@ -113,6 +112,16 @@ usage:
   ${pspac} [-o FILE] [-m CMD] [-g PATT] [-d NUM] [-t TYPE] [-f PATT] [-e PATT]
   ${pspac} [-c DIR]
   ${pspac} [--] [FILES...]
+EOF
+}
+
+show_help () {
+    local pname
+    pname="${0##*/}"
+    usage=$(show_usage)
+
+cat << EOF
+${usage}
 
 General purpose file picker combining "find" command with a fuzzy finder.
 
@@ -165,7 +174,7 @@ OPTIND=1
 # After parsing commandline options, the global opt_ variables are updated.
 # Anything remaining in "$@" is not an option and can be used otherwise (such
 # as positional arguments).
-while getopts ':HhVsalxknpiMrbo:m:d:t:f:e:g:c:' OPTION
+while getopts 'HhVsalxknpiMrbo:m:d:t:f:e:g:c:' OPTION
 do
     case "${OPTION}" in
         H)  show_help
@@ -208,7 +217,7 @@ do
         e)  opt_extended="${OPTARG}" ;;
         g)  opt_grep="${OPTARG}" ;;
         c)  opt_changedir="${OPTARG}" ;;
-        *)  show_help >&2
+        *)  show_usage >&2
             exit 1
             ;;
     esac
