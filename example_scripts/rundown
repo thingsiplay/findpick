@@ -4,10 +4,10 @@
 # Change the default values to your liking.  Any commandline argument will have
 # higher priority than these defaults.
 #
-# -r CMD: Folder where the script will start looking at.
+# -c CMD: Folder where the script will start looking at.
 default_changedir='~'
 #
-# -c DIR: Command to run the selected file with.
+# -r DIR: Command to run the selected file with.
 default_runcmd='echo'
 #
 ###############################################################################
